@@ -19,9 +19,7 @@ services:
       # config.py defaults include 'apple' so all manifests are discovered.
       - GPU_BACKEND=apple
       # Static host hardware info written to .env by install-macos.sh (Phase 2).
-      - HOST_RAM_TOTAL_GB=${HOST_RAM_TOTAL_GB}
-      - HOST_GPU_CORES=${HOST_GPU_CORES}
-      - HOST_CHIP=${HOST_CHIP}
+      - HOST_RAM_GB=${HOST_RAM_GB:-0}
 
   open-webui:
     environment:
