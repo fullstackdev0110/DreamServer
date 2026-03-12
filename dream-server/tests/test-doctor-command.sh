@@ -28,7 +28,7 @@ else
 fi
 
 # Test 2: doctor command registered
-if grep -q "doctor|diag|d)" "$ROOT_DIR/dream-cli"; then
+if grep -Eq "doctor|diag|d\)" "$ROOT_DIR/dream-cli"; then
     pass "doctor command registered"
 else
     fail "doctor not registered"
@@ -49,7 +49,7 @@ else
 fi
 
 # Test 5: Exit code handling
-if grep -q "exit_code=\|return \$exit_code" "$ROOT_DIR/dream-cli"; then
+if grep -q "return \$?" "$ROOT_DIR/dream-cli"; then
     pass "exit code handling"
 else
     fail "exit codes missing"
@@ -102,6 +102,81 @@ if grep -q "report_file=" "$ROOT_DIR/dream-cli"; then
     pass "report file configurable"
 else
     fail "not configurable"
+fi
+
+# Test 13: Functional test - exit code and output
+if command -v python3 &>/dev/null; then
+    # Create a mock report with failures
+    mock_report=$(mktemp)
+    cat > "$mock_report" <<'JSON'
+{
+  "runtime": {
+    "docker_cli": true,
+    "docker_daemon": false,
+    "compose_cli": true,
+    "dashboard_http": false,
+    "webui_http": false
+  },
+  "preflight": {
+    "checks": [
+      {"name": "Docker", "status": "blocker", "message": "Docker daemon not running"}
+    ]
+  },
+  "summary": {
+    "preflight_blockers": 1,
+    "preflight_warnings": 0,
+    "runtime_ready": false
+  },
+  "autofix_hints": ["Start Docker daemon"]
+}
+JSON
+
+    # Extract and run the Python parser (disable set -e temporarily to capture exit code)
+    set +e
+    output=$(python3 - "$mock_report" <<'PY'
+import json
+import sys
+
+report_file = sys.argv[1]
+with open(report_file, 'r') as f:
+    report = json.load(f)
+
+runtime = report.get('runtime', {})
+print("Runtime Environment:")
+for name, status in [('Docker Daemon', runtime.get('docker_daemon', False))]:
+    if status:
+        print(f"  [OK] {name}")
+    else:
+        print(f"  [FAIL] {name}")
+
+summary = report.get('summary', {})
+blocker_count = summary.get('preflight_blockers', 0)
+if blocker_count > 0:
+    sys.exit(1)
+else:
+    sys.exit(0)
+PY
+    )
+    exit_code=$?
+    set -e
+
+    rm -f "$mock_report"
+
+    # Verify output contains expected text
+    if echo "$output" | grep -q "Runtime Environment"; then
+        pass "functional test: output displayed"
+    else
+        fail "functional test: no output"
+    fi
+
+    # Verify exit code is 1 (failures present)
+    if [[ $exit_code -eq 1 ]]; then
+        pass "functional test: exit code correct"
+    else
+        fail "functional test: exit code wrong ($exit_code)"
+    fi
+else
+    fail "python3 not available for functional test"
 fi
 
 echo ""

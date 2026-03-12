@@ -410,6 +410,7 @@ cmd_doctor() {
                 shift
                 ;;
             --report)
+                [[ -n "${2:-}" ]] || { echo "Error: --report requires a path argument" >&2; return 1; }
                 report_file="$2"
                 shift 2
                 ;;
@@ -438,13 +439,11 @@ cmd_doctor() {
     fi
 
     # Parse and display operator-friendly output
-    local exit_code=0
-
     echo -e "${BLUE}━━━ Dream Server Diagnostics ━━━${NC}"
     echo ""
 
     # Use Python to parse JSON and display results
-    exit_code=$(python3 - "$report_file" <<'PY'
+    python3 - "$report_file" <<'PY'
 import json
 import sys
 
@@ -540,9 +539,8 @@ if has_failures or blocker_count > 0:
 else:
     sys.exit(0)
 PY
-)
 
-    return $exit_code
+    return $?
 }
 
 #=============================================================================
