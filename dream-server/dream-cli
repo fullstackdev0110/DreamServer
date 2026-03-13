@@ -425,17 +425,30 @@ cmd_doctor() {
         error "dream-doctor script not found at $INSTALL_DIR/scripts/dream-doctor.sh"
     fi
 
-    # Run doctor script (suppresses its output)
-    "$INSTALL_DIR/scripts/dream-doctor.sh" "$report_file" >/dev/null 2>&1
+    # Run doctor script. If it fails to generate a report, show the script output
+    # to make failures actionable for operators.
+    local doctor_out
+    doctor_out=$(mktemp)
+    "$INSTALL_DIR/scripts/dream-doctor.sh" "$report_file" >"$doctor_out" 2>&1 || true
 
     if [[ ! -f "$report_file" ]]; then
+        cat "$doctor_out" >&2
+        rm -f "$doctor_out"
         error "Doctor report not generated at $report_file"
     fi
+    rm -f "$doctor_out"
 
     # JSON mode: just output the report
     if [[ "$json_mode" == "true" ]]; then
         cat "$report_file"
         return 0
+    fi
+
+    # If python3 is unavailable, fall back to printing the JSON report.
+    if ! command -v python3 >/dev/null 2>&1; then
+        warn "python3 not found; printing raw JSON report (use --json to suppress this warning)"
+        cat "$report_file"
+        return 1
     fi
 
     # Parse and display operator-friendly output
