@@ -77,6 +77,7 @@ else
   warn "python3 not found — skipping schema validation (compatibility checks only)"
 fi
 
+set +e
 python3 - "$ROOT_DIR" "$EXT_DIR_REL" "$SCHEMA_PATH_REL" "$CORE_VERSION" "$PYTHON_OK" <<'PY'
 import json
 import sys
@@ -95,10 +96,9 @@ schema_path = root_dir / schema_rel
 results = []
 schema_errors = False
 
+
 def parse_version(v: str):
-    """
-    Parse "2.0.0" into (2, 0, 0). Non-numeric segments become 0.
-    """
+    """Parse "2.0.0" into (2, 0, 0). Non-numeric segments become 0."""
     parts = []
     for part in v.split("."):
         try:
@@ -109,6 +109,34 @@ def parse_version(v: str):
         parts.append(0)
     return tuple(parts[:3])
 
+
+def compatibility_result(manifest, fallback_sid, core_ver_tuple):
+    """Given a parsed manifest, return the single compatibility result dict."""
+    svc = manifest.get("service", {})
+    sid = svc.get("id") or fallback_sid
+    compat = manifest.get("compatibility", {})
+    dream_min = compat.get("dream_min")
+    dream_max = compat.get("dream_max")
+
+    if not dream_min and not dream_max:
+        return {
+            "service_id": sid,
+            "status": "ok-no-metadata",
+            "reason": "No dream_min/dream_max specified (assumed compatible)",
+        }
+
+    status = "ok"
+    reason = "Compatible with current version"
+    if dream_min and parse_version(str(dream_min)) > core_ver_tuple:
+        status = "incompatible"
+        reason = f"Requires Dream Server >= {dream_min}"
+    elif dream_max and parse_version(str(dream_max)) < core_ver_tuple:
+        status = "incompatible"
+        reason = f"Supports Dream Server <= {dream_max}"
+
+    return {"service_id": sid, "status": status, "reason": reason}
+
+
 core_ver_tuple = parse_version(core_version)
 
 if python_ok:
@@ -117,37 +145,54 @@ if python_ok:
 
     with schema_path.open("r", encoding="utf-8") as f:
         schema = json.load(f)
+else:
+    try:
+        import yaml  # type: ignore[import-not-found]
+    except Exception:
+        yaml = None  # type: ignore[assignment]
+    schema = None
 
-    for service_dir in sorted(ext_dir.iterdir()):
-        if not service_dir.is_dir():
-            continue
-        manifest_path = None
-        for name in ("manifest.yaml", "manifest.yml", "manifest.json"):
-            candidate = service_dir / name
-            if candidate.exists():
-                manifest_path = candidate
-                break
-        if not manifest_path:
-            continue
+for service_dir in sorted(ext_dir.iterdir()):
+    if not service_dir.is_dir():
+        continue
+    manifest_path = None
+    for name in ("manifest.yaml", "manifest.yml", "manifest.json"):
+        candidate = service_dir / name
+        if candidate.exists():
+            manifest_path = candidate
+            break
+    if not manifest_path:
+        continue
 
-        try:
-            if manifest_path.suffix == ".json":
-                with manifest_path.open("r", encoding="utf-8") as f:
-                    manifest = json.load(f)
-            else:
-                with manifest_path.open("r", encoding="utf-8") as f:
-                    manifest = yaml.safe_load(f)
-        except Exception as e:  # noqa: BLE001
-            schema_errors = True
+    manifest = None
+    try:
+        if manifest_path.suffix == ".json":
+            with manifest_path.open("r", encoding="utf-8") as f:
+                manifest = json.load(f)
+        elif yaml is not None:
+            with manifest_path.open("r", encoding="utf-8") as f:
+                manifest = yaml.safe_load(f)
+        else:
             results.append(
                 {
                     "service_id": service_dir.name,
-                    "status": "error",
-                    "reason": f"Failed to parse manifest: {e}",
+                    "status": "skipped",
+                    "reason": "Cannot parse manifest (no PyYAML/jsonschema)",
                 }
             )
             continue
+    except Exception as e:  # noqa: BLE001
+        schema_errors = True
+        results.append(
+            {
+                "service_id": service_dir.name,
+                "status": "error",
+                "reason": f"Failed to parse manifest: {e}",
+            }
+        )
+        continue
 
+    if schema is not None:
         try:
             jsonschema.validate(manifest, schema)
         except jsonschema.ValidationError as e:  # type: ignore[attr-defined]
@@ -162,120 +207,7 @@ if python_ok:
             )
             continue
 
-        svc = manifest.get("service", {})
-        sid = svc.get("id") or service_dir.name
-        compat = manifest.get("compatibility", {})
-        dream_min = compat.get("dream_min")
-        dream_max = compat.get("dream_max")
-
-        if not dream_min and not dream_max:
-            results.append(
-                {
-                    "service_id": sid,
-                    "status": "ok-no-metadata",
-                    "reason": "No dream_min/dream_max specified (assumed compatible)",
-                }
-            )
-            continue
-
-        status = "ok"
-        reason = "Compatible with current version"
-        if dream_min:
-            if parse_version(str(dream_min)) > core_ver_tuple:
-                status = "incompatible"
-                reason = f"Requires Dream Server >= {dream_min}"
-        if dream_max and status == "ok":
-            if parse_version(str(dream_max)) < core_ver_tuple:
-                status = "incompatible"
-                reason = f"Supports Dream Server <= {dream_max}"
-
-        results.append(
-            {
-                "service_id": sid,
-                "status": status,
-                "reason": reason,
-            }
-        )
-else:
-    # Compatibility-only mode: best-effort read of YAML/JSON for dream_min/dream_max.
-    try:
-        import yaml  # type: ignore[import-not-found]
-    except Exception:
-        yaml = None  # type: ignore[assignment]
-
-    for service_dir in sorted(ext_dir.iterdir()):
-        if not service_dir.is_dir():
-            continue
-        manifest_path = None
-        for name in ("manifest.yaml", "manifest.yml", "manifest.json"):
-            candidate = service_dir / name
-            if candidate.exists():
-                manifest_path = candidate
-                break
-        if not manifest_path:
-            continue
-
-        try:
-            if manifest_path.suffix == ".json":
-                with manifest_path.open("r", encoding="utf-8") as f:
-                    manifest = json.load(f)
-            elif yaml is not None:
-                with manifest_path.open("r", encoding="utf-8") as f:
-                    manifest = yaml.safe_load(f)
-            else:
-                results.append(
-                    {
-                        "service_id": service_dir.name,
-                        "status": "skipped",
-                        "reason": "Cannot parse manifest (no PyYAML/jsonschema)",
-                    }
-                )
-                continue
-        except Exception as e:  # noqa: BLE001
-            results.append(
-                {
-                    "service_id": service_dir.name,
-                    "status": "error",
-                    "reason": f"Failed to parse manifest: {e}",
-                }
-            )
-            schema_errors = True
-            continue
-
-        svc = manifest.get("service", {})
-        sid = svc.get("id") or service_dir.name
-        compat = manifest.get("compatibility", {})
-        dream_min = compat.get("dream_min")
-        dream_max = compat.get("dream_max")
-
-        if not dream_min and not dream_max:
-            results.append(
-                {
-                    "service_id": sid,
-                    "status": "ok-no-metadata",
-                    "reason": "No dream_min/dream_max specified (assumed compatible)",
-                }
-            )
-            continue
-
-        status = "ok"
-        reason = "Compatible with current version"
-        if dream_min:
-            if parse_version(str(dream_min)) > core_ver_tuple:
-                status = "incompatible"
-                reason = f"Requires Dream Server >= {dream_min}"
-        if dream_max and status == "ok":
-            if parse_version(str(dream_max)) < core_ver_tuple:
-                status = "incompatible"
-                reason = f"Supports Dream Server <= {dream_max}"
-
-        results.append(
-            {
-                "service_id": sid,
-                "status": status,
-                "reason": reason,
-            }
-        )
+    results.append(compatibility_result(manifest, service_dir.name, core_ver_tuple))
 
 # Print human-readable summary
 print()
@@ -329,8 +261,10 @@ if schema_errors or errors:
     sys.exit(1)
 sys.exit(0)
 PY
+py_exit=$?
+set -e
 
-if [[ $? -eq 0 ]]; then
+if [[ "$py_exit" -eq 0 ]]; then
   pass "Extension manifests validated"
 else
   fail "Extension manifest validation failed"
