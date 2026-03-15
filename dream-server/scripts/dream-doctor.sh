@@ -125,6 +125,7 @@ pre = json.load(open(preflight_file, "r", encoding="utf-8"))
 report = {
     "version": "1",
     "generated_at": datetime.now(timezone.utc).isoformat(),
+    "autofix_hints": [],
     "capability_profile": cap,
     "preflight": pre,
     "runtime": {
@@ -169,7 +170,7 @@ for hint in fix_hints:
     seen.add(hint)
     uniq_hints.append(hint)
 
-report["autofix_hints"] = uniq_hints
+report["autofix_hints"] = uniq_hints  # overwrite initial empty list
 
 path = pathlib.Path(report_file)
 path.parent.mkdir(parents=True, exist_ok=True)
