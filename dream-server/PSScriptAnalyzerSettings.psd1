@@ -6,6 +6,7 @@
         'PSUseShouldProcessForStateChangingFunctions'
         'PSUseApprovedVerbs'
         'PSUseDeclaredVarsMoreThanAssignments'
+        'PSUseSingularNouns'
     )
     Rules = @{
         PSAvoidUsingConvertToSecureStringWithPlainText = @{
