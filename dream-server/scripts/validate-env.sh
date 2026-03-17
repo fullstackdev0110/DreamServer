@@ -35,8 +35,9 @@ Validates a Dream Server .env file against the JSON schema.
 
 Exit codes:
   0  valid
+  1  missing env/schema file
   2  validation errors
-  3  missing deps / unreadable input
+  3  missing deps (e.g. jq)
 
 Tips:
   - Use .env.example as a reference
@@ -52,12 +53,12 @@ done
 
 if [[ ! -f "$ENV_FILE" ]]; then
     log_error "Env file not found: $ENV_FILE"
-    exit 3
+    exit 1
 fi
 
 if [[ ! -f "$SCHEMA_FILE" ]]; then
     log_error "Schema file not found: $SCHEMA_FILE"
-    exit 3
+    exit 1
 fi
 
 if ! command -v jq >/dev/null 2>&1; then
@@ -130,7 +131,7 @@ while IFS= read -r raw_line || [[ -n "$raw_line" ]]; do
     continue
   fi
 
-  read -r key value < <(split_kv "$line")
+  { read -r key; read -r value; } < <(split_kv "$line")
 
   if [[ ! "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
     log_warn "Ignoring line $line_no (invalid key '$key')"
