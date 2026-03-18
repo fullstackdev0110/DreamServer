@@ -8,12 +8,14 @@ def test_workflows_requires_auth(test_client):
 
 
 def test_workflows_authenticated(test_client):
-    """GET /api/workflows with auth → 200, returns workflow catalog."""
+    """GET /api/workflows with auth → 200, returns workflow catalog with categories and n8n info."""
     resp = test_client.get("/api/workflows", headers=test_client.auth_headers)
     assert resp.status_code == 200
     data = resp.json()
     assert "workflows" in data
     assert "categories" in data
+    assert "n8nAvailable" in data
+    assert "n8nUrl" in data
     assert isinstance(data["workflows"], list)
     assert isinstance(data["categories"], dict)
 

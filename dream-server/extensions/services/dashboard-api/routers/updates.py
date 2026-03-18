@@ -131,5 +131,3 @@ async def trigger_update(action: UpdateAction, background_tasks: BackgroundTasks
             await proc.communicate()
         background_tasks.add_task(run_update)
         return {"success": True, "message": "Update started in background. Check logs for progress."}
-    else:
-        raise HTTPException(status_code=400, detail=f"Unknown action: {action.action}")
