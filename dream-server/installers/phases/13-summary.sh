@@ -120,14 +120,16 @@ if [[ -f "$PREFLIGHT_REPORT_FILE" ]]; then
     echo ""
 fi
 
-# Run preflight check to validate installation
+# Run preflight check to validate installation (skip in dry-run — no services started)
 echo ""
 bootline
 echo -e "${BGRN}RUNNING PREFLIGHT VALIDATION${NC}"
 bootline
 echo ""
 
-if [[ -f "$SCRIPT_DIR/dream-preflight.sh" ]]; then
+if $DRY_RUN; then
+    log "Preflight validation skipped (dry-run — no services were started)"
+elif [[ -f "$SCRIPT_DIR/dream-preflight.sh" ]]; then
     # Wait a moment for services to stabilize
     sleep 2
     bash "$SCRIPT_DIR/dream-preflight.sh" || true
@@ -211,18 +213,26 @@ WEBUI_PORT="${SERVICE_PORTS[open-webui]:-3000}"
 OPENCLAW_PORT="${SERVICE_PORTS[openclaw]:-7860}"
 LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
 echo -e "${GRN}──────────────────────────────────────────────────────────────────────────────${NC}"
-echo -e "${BGRN}  YOUR DREAM SERVER IS LIVE${NC}"
-echo -e "${GRN}──────────────────────────────────────────────────────────────────────────────${NC}"
-echo ""
-echo -e "  ${BGRN}Dashboard${NC}    ${WHT}http://localhost:${DASHBOARD_PORT}${NC}"
-echo -e "  ${BGRN}Chat${NC}         ${WHT}http://localhost:${WEBUI_PORT}${NC}"
-[[ "$ENABLE_OPENCLAW" == "true" ]] && \
-echo -e "  ${BGRN}OpenClaw${NC}     ${WHT}http://localhost:${OPENCLAW_PORT}${NC}"
-systemctl --user is-active opencode-web &>/dev/null && \
-echo -e "  ${BGRN}OpenCode${NC}     ${WHT}http://localhost:3003${NC}"
-echo ""
-if [[ -n "$LOCAL_IP" ]]; then
-echo -e "  ${AMB}On your network:${NC}  ${WHT}http://${LOCAL_IP}:${DASHBOARD_PORT}${NC}"
+if $DRY_RUN; then
+    echo -e "${BGRN}  DRY RUN COMPLETE${NC}"
+    echo -e "${GRN}──────────────────────────────────────────────────────────────────────────────${NC}"
+    echo ""
+    echo -e "  Run without ${WHT}--dry-run${NC} to install and start services."
+    echo -e "  Dashboard will be at ${WHT}http://localhost:${DASHBOARD_PORT}${NC}, Chat at ${WHT}http://localhost:${WEBUI_PORT}${NC}"
+else
+    echo -e "${BGRN}  YOUR DREAM SERVER IS LIVE${NC}"
+    echo -e "${GRN}──────────────────────────────────────────────────────────────────────────────${NC}"
+    echo ""
+    echo -e "  ${BGRN}Dashboard${NC}    ${WHT}http://localhost:${DASHBOARD_PORT}${NC}"
+    echo -e "  ${BGRN}Chat${NC}         ${WHT}http://localhost:${WEBUI_PORT}${NC}"
+    [[ "$ENABLE_OPENCLAW" == "true" ]] && \
+    echo -e "  ${BGRN}OpenClaw${NC}     ${WHT}http://localhost:${OPENCLAW_PORT}${NC}"
+    systemctl --user is-active opencode-web &>/dev/null && \
+    echo -e "  ${BGRN}OpenCode${NC}     ${WHT}http://localhost:3003${NC}"
+    echo ""
+    if [[ -n "$LOCAL_IP" ]]; then
+    echo -e "  ${AMB}On your network:${NC}  ${WHT}http://${LOCAL_IP}:${DASHBOARD_PORT}${NC}"
+    fi
 fi
 echo ""
 echo -e "  Start here → ${WHT}http://localhost:${DASHBOARD_PORT}${NC}"

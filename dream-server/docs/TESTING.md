@@ -2,6 +2,18 @@
 
 Dream Server supports multiple Linux distributions. This guide covers how to test across distros efficiently.
 
+## Quick verification (this machine)
+
+On any Linux box, from the `dream-server` directory you can confirm the installer path and config without starting services:
+
+```bash
+./install.sh --dry-run --non-interactive --skip-docker   # Simulate full install
+bash tests/integration-test.sh                           # Hardware detection, compose, dry-run support
+bash tests/smoke/installer-env-smoke.sh                  # .env generation, schema, compose syntax
+```
+
+All three should pass. Dry-run shows "DRY RUN COMPLETE" and does not run post-install preflight (no services are started).
+
 ## Quick Reference
 
 | Method | Speed | GPU Testing | Kernel Testing | Best For |
