@@ -21,10 +21,11 @@ NC='\033[0m'
 
 PASSED=0
 FAILED=0
+SKIPPED=0
 
 pass() { echo -e "  ${GREEN}✓ PASS${NC} $1"; PASSED=$((PASSED + 1)); }
 fail() { echo -e "  ${RED}✗ FAIL${NC} $1"; FAILED=$((FAILED + 1)); }
-skip() { echo -e "  ${YELLOW}⊘ SKIP${NC} $1"; PASSED=$((PASSED + 1)); }
+skip() { echo -e "  ${YELLOW}⊘ SKIP${NC} $1"; SKIPPED=$((SKIPPED + 1)); }
 
 echo ""
 echo "╔═══════════════════════════════════════════════════╗"
@@ -77,5 +78,5 @@ else
 fi
 
 echo ""
-echo "Result: $PASSED passed, $FAILED failed"
+echo "Result: $PASSED passed, $FAILED failed, $SKIPPED skipped"
 [[ $FAILED -eq 0 ]]
