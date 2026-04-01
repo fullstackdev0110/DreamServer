@@ -5,8 +5,8 @@ name: Nightly Code Review
 # Estimated cost: ~$3-8 per run depending on change volume.
 
 on:
-  schedule:
-    - cron: '0 3 * * *'  # 3 AM UTC daily
+  # schedule:
+  #   - cron: '0 3 * * *'  # 3 AM UTC daily — enable after cost validation
   workflow_dispatch:
     inputs:
       commits_to_analyze:
@@ -119,7 +119,7 @@ jobs:
             cat .github/prompts/nightly-code-review.md
             echo ""
             echo "COMMITS_TO_ANALYZE: ${COMMITS}"
-          } | npx -y @anthropic-ai/claude-code \
+          } | npx -y @anthropic-ai/claude-code@2.1.89 \
             --print \
             --model claude-sonnet-4-6-v1 \
             --max-turns 40 \

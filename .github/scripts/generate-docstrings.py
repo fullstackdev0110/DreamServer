@@ -9,6 +9,7 @@ Cost: $20-35 per run (depending on function count and complexity)
 """
 
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -262,7 +263,10 @@ def main() -> None:
             f"**Tokens**: {metadata['total_tokens']:,} ({metadata['input_tokens']:,} in + {metadata['output_tokens']:,} out)"
         )
 
-        print(f"\n::set-output name=docstring_cost::{cost}")
+        github_output = os.environ.get("GITHUB_OUTPUT", "")
+        if github_output:
+            with open(github_output, "a") as f:
+                f.write(f"docstring_cost={cost}\n")
 
 
 if __name__ == "__main__":
