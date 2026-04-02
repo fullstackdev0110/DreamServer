@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-02T10:16:35Z",
+  "generated_at": "2026-04-02T17:24:18Z",
   "schema_version": "1.0.0",
   "extensions": [
     {
@@ -312,7 +312,9 @@
       "name": "Baserow",
       "description": "Open-source no-code database tool and Airtable alternative.\nCreate databases, tables, and views with a spreadsheet-like interface.\nSelf-hosted with no storage restrictions. MIT licensed.\n",
       "category": "optional",
-      "gpu_backends": [],
+      "gpu_backends": [
+        "all"
+      ],
       "compose_file": "compose.yaml",
       "depends_on": [],
       "port": 80,
@@ -321,7 +323,7 @@
       "env_vars": [],
       "tags": [
         "database",
-        "nocde",
+        "nocode",
         "airtable",
         "spreadsheet",
         "collaboration",
@@ -492,7 +494,9 @@
       "name": "CrewAI",
       "description": "CrewAI is a multi-agent framework for AI workflows. It enables autonomous\nAI agents to collaborate, delegate tasks, and work together to solve\ncomplex problems. Perfect for building agent teams that simulate real-world\ncollaboration and decision-making.\n",
       "category": "optional",
-      "gpu_backends": [],
+      "gpu_backends": [
+        "all"
+      ],
       "compose_file": "compose.yaml",
       "depends_on": [],
       "port": 8501,
@@ -1019,7 +1023,9 @@
       "name": "Gitea (Git Hosting)",
       "description": "Lightweight self-hosted Git service for managing repositories and CI/CD.",
       "category": "optional",
-      "gpu_backends": [],
+      "gpu_backends": [
+        "all"
+      ],
       "compose_file": "compose.yaml",
       "depends_on": [],
       "port": 3000,
@@ -1290,7 +1296,9 @@
       "name": "Label Studio",
       "description": "Label Studio is an open source data labeling tool.\nLabel images, audio, text, time series, and more for ML model training.\n",
       "category": "optional",
-      "gpu_backends": [],
+      "gpu_backends": [
+        "all"
+      ],
       "compose_file": "compose.yaml",
       "depends_on": [],
       "port": 8080,
@@ -1636,7 +1644,9 @@
       "name": "Milvus (Vector Database)",
       "description": "Production-grade open-source vector database for scalable similarity search.",
       "category": "recommended",
-      "gpu_backends": [],
+      "gpu_backends": [
+        "all"
+      ],
       "compose_file": "compose.yaml",
       "depends_on": [],
       "port": 19530,
@@ -1698,7 +1708,9 @@
       "name": "Open Interpreter",
       "description": "Open Interpreter lets LLMs run code locally (Python, JavaScript, Shell, etc.).\nIt provides a ChatGPT-like interface in your terminal and can control Chrome,\ncreate/edit files, analyze datasets, and more. Fully local, no API costs.\nRequires OPEN_INTERPRETER_API_KEY for authentication. Auto-run is disabled\nby default (set OPEN_INTERPRETER_AUTO_RUN=true to enable).\n",
       "category": "optional",
-      "gpu_backends": [],
+      "gpu_backends": [
+        "all"
+      ],
       "compose_file": "compose.yaml",
       "depends_on": [],
       "port": 8080,
@@ -1763,7 +1775,9 @@
       "name": "Paperless-ngx",
       "description": "Paperless-ngx is a document management system that transforms your physical\ndocuments into a searchable online archive. OCR, tagging, automatic\nclassification, and full-text search for PDFs and images.\n",
       "category": "optional",
-      "gpu_backends": [],
+      "gpu_backends": [
+        "all"
+      ],
       "compose_file": "compose.yaml",
       "depends_on": [],
       "port": 8000,
@@ -2086,7 +2100,9 @@
       "name": "Weaviate",
       "description": "Weaviate is an open-source vector database that stores both objects and vectors.\nSupports semantic search, hybrid search, structured filtering, and multi-tenancy.\nA cloud-native alternative to ChromaDB with gRPC support and horizontal scaling.\n",
       "category": "optional",
-      "gpu_backends": [],
+      "gpu_backends": [
+        "all"
+      ],
       "compose_file": "compose.yaml",
       "depends_on": [],
       "port": 8080,
