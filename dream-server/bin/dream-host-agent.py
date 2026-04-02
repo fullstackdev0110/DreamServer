@@ -86,9 +86,54 @@ def resolve_compose_flags() -> list:
     return result.stdout.strip().split()
 
 
+def _precreate_data_dirs(service_id: str):
+    """Pre-create data directories for an extension with correct ownership."""
+    ext_dir = USER_EXTENSIONS_DIR / service_id
+    compose_path = ext_dir / "compose.yaml"
+    if not compose_path.exists():
+        return
+    try:
+        import yaml
+        data = yaml.safe_load(compose_path.read_text(encoding="utf-8"))
+    except ImportError:
+        # PyYAML not available — skip pre-creation
+        logger.debug("PyYAML not available, skipping data dir pre-creation for %s", service_id)
+        return
+    except Exception:
+        return
+    if not isinstance(data, dict):
+        return
+    for svc_name, svc_def in data.get("services", {}).items():
+        if not isinstance(svc_def, dict):
+            continue
+        uid = None
+        user_field = svc_def.get("user")
+        if user_field:
+            user_str = str(user_field).split(":")[0]
+            m = re.match(r'\$\{[^:}]+:-(\d+)\}', user_str)
+            if m:
+                uid = int(m.group(1))
+            elif user_str.isdigit():
+                uid = int(user_str)
+        volumes = svc_def.get("volumes", [])
+        if not isinstance(volumes, list):
+            continue
+        for vol in volumes:
+            vol_str = str(vol).split(":")[0]
+            if vol_str.startswith("./data/") or vol_str.startswith("data/"):
+                dir_path = INSTALL_DIR / vol_str.lstrip("./")
+                try:
+                    dir_path.mkdir(parents=True, exist_ok=True)
+                    if uid is not None and os.getuid() == 0:
+                        os.chown(str(dir_path), uid, uid)
+                except OSError as e:
+                    logger.warning("Failed to pre-create %s: %s", dir_path, e)
+
+
 def docker_compose_action(service_id: str, action: str) -> tuple:
     flags = resolve_compose_flags()
     if action == "start":
+        _precreate_data_dirs(service_id)
         cmd = ["docker", "compose"] + flags + ["up", "-d", service_id]
     elif action == "stop":
         cmd = ["docker", "compose"] + flags + ["stop", service_id]
