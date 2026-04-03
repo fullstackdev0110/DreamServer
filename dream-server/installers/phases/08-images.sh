@@ -16,7 +16,11 @@
 # ============================================================================
 
 dream_progress 48 "images" "Downloading container images"
-show_phase 4 6 "Downloading Modules" "~5-10 minutes"
+if [[ "$GPU_BACKEND" == "nvidia" && "${ENABLE_COMFYUI:-}" == "true" ]]; then
+    show_phase 4 6 "Downloading Modules" "~5-10 min + ~30 min ComfyUI build"
+else
+    show_phase 4 6 "Downloading Modules" "~5-10 minutes"
+fi
 
 # Build image list with cinematic labels
 # Format: "image|friendly_name"
